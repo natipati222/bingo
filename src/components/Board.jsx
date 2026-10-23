@@ -18,7 +18,7 @@ const bazyHasel = {
   ]
 };
 
-export default function Board({ nick, kategoria, socket, onWyjscie }) {
+export default function Board({ nick, kategoria, kodPokoju, socket, onWyjscie }) {
   const [haslaPlanszy, setHaslaPlanszy] = useState([]);
   const [zaznaczone, setZaznaczone] = useState(Array(9).fill(false));
   const [komunikat, setKomunikat] = useState("");
@@ -69,10 +69,13 @@ export default function Board({ nick, kategoria, socket, onWyjscie }) {
 
   return (
     <div className="flex flex-col items-center p-4 max-w-md w-full text-white">
+      
       {/* Nagłówek gry */}
       <div className="text-center mb-4">
         <h1 className="text-2xl font-bold text-indigo-400">Bingo: {nick}</h1>
-        <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">Kategoria: {kategoria}</p>
+        <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">
+          Kategoria: {kategoria} | Pokój: <span className="font-mono text-amber-400 font-bold">{kodPokoju}</span>
+        </p>
       </div>
 
       {/* Komunikat o wygranej */}
