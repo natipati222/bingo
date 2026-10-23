@@ -1,6 +1,6 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+import express from 'express';
+import http from 'node:http';
+import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
@@ -11,36 +11,63 @@ const io = new Server(server, {
   }
 });
 
-io.on('connection', (socket) => {
-  console.log('🟢 Nowy gracz połączył się:', socket.id);
+// Obiekt przechowujący aktywne pokoje i ich ustawienia
+const pokoje = {};
 
-  // Dołączanie do pokoju
-  socket.on('dolacz-do-pokoju', ({ kodPokoju, nick }) => {
+io.on('connection', (socket) => {
+  console.log('🟢 Nowy użytkownik połączył się:', socket.id);
+
+  // 1. Host tworzy pokój (wybiera kategorię i kod)
+  socket.on('utworz-pokoj', ({ kodPokoju, nick, kategoria }) => {
     socket.join(kodPokoju);
     socket.data.nick = nick;
     socket.data.kodPokoju = kodPokoju;
+    socket.data.isHost = true;
 
-    console.log(`👤 Gracz "${nick}" dołączył do pokoju: ${kodPokoju}`);
+    // Zapisujemy pokój na serwerze
+    pokoje[kodPokoju] = { kategoria, host: socket.id };
+    console.log(`🏠 Host "${nick}" utworzył pokój [${kodPokoju}] z kategorią: ${kategoria}`);
+
+    // Potwierdzamy hostowi wejście do gry
+    socket.emit('start-gry', { kategoria, isHost: true });
+  });
+
+  // 2. Gracz dołącza do istniejącego pokoju (NIE wybiera kategorii)
+  socket.on('dolacz-do-pokoju', ({ kodPokoju, nick }) => {
+    if (!pokoje[kodPokoju]) {
+      socket.emit('blad', 'Taki pokój nie istnieje! Sprawdź kod.');
+      return;
+    }
+
+    socket.join(kodPokoju);
+    socket.data.nick = nick;
+    socket.data.kodPokoju = kodPokoju;
+    socket.data.isHost = false;
+
+    const kategoriaPokoju = pokoje[kodPokoju].kategoria;
+    console.log(`👤 Gracz "${nick}" dołączył do pokoju [${kodPokoju}] (kategoria: ${kategoriaPokoju})`);
+
+    // Wysyłamy graczowi kategorię przypisaną do tego pokoju
+    socket.emit('start-gry', { kategoria: kategoriaPokoju, isHost: false });
     
-    // Informujemy wszystkich w pokoju, że ktoś doszedł
+    // Powiadamiamy innych w pokoju
     io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} dołączył do pokoju!`);
   });
 
-  // Reakcja na wygraną gracza w konkretnym pokoju
+  // 3. Wygrana w pokoju
   socket.on('bingo-wygrana', () => {
     const { nick, kodPokoju } = socket.data;
     if (kodPokoju) {
       console.log(`🎉 BINGO w pokoju ${kodPokoju}! Wygrał: ${nick}`);
-      // Wysyłamy ogłoszenie o wygranej TYLKO do graczy w tym samym pokoju
       io.to(kodPokoju).emit('ogloszenie-wygranej', `🎉 Gracz ${nick} właśnie zdobył BINGO!`);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log('🔴 Gracz rozłączył się:', socket.id);
+    console.log('🔴 Użytkownik rozłączył się:', socket.id);
   });
 });
 
 server.listen(3000, () => {
-  console.log('🚀 Serwer Socket.io działa na porcie 3000 (obsługa pokoi)');
+  console.log('🚀 Serwer Socket.io działa na porcie 3000 (System Host / Gracz)');
 });
