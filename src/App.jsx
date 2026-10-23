@@ -1,122 +1,87 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import Board from './components/Board';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Połączenie z serwerem Node.js (na porcie 3000)
+const socket = io('http://localhost:3000');
+
+export default function App() {
+  const [zalogowany, setZalogowany] = useState(false);
+  const [nick, setNick] = useState("");
+  const [kategoria, setKategoria] = useState("impreza");
+  const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
+
+  useEffect(() => {
+    socket.on('connect', () => {
+      setStatusServera("Połączono z serwerem 🟢");
+    });
+
+    socket.on('disconnect', () => {
+      setStatusServera("Rozłączono z serwerem 🔴");
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+    };
+  }, []);
+
+  const handleStart = (e) => {
+    e.preventDefault();
+    if (!nick.trim()) {
+      alert("Proszę wpisać nick!");
+      return;
+    }
+    setZalogowany(true);
+    socket.emit('ustaw-nick', nick);
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="bg-slate-900 text-white min-h-screen flex items-center justify-center">
+      {!zalogowany ? (
+        // Ekran logowania
+        <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-96 border border-slate-700 text-white">
+          <div className="text-center mb-6">
+            <span className="text-4xl">🎯</span>
+            <h1 className="text-2xl font-bold mt-2 text-indigo-400">Live Bingo Pro</h1>
+            <p className="text-slate-400 text-sm mt-1">{statusServera}</p>
+          </div>
+          <form onSubmit={handleStart} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Twój Nick</label>
+              <input 
+                type="text" 
+                value={nick} 
+                onChange={(e) => setNick(e.target.value)}
+                placeholder="np. Kacper"
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white"
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Kategoria Gry</label>
+              <select 
+                value={kategoria} 
+                onChange={(e) => setKategoria(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white"
+              >
+                <option value="impreza">🎉 Impreza</option>
+                <option value="studia">📚 Wykład na uczelni</option>
+                <option value="sesja">🤯 Sesja egzaminacyjna</option>
+              </select>
+            </div>
+            <button 
+              type="submit"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg transition duration-200 shadow-lg shadow-indigo-600/30 cursor-pointer"
+            >
+              Dołącz do gry
+            </button>
+          </form>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      ) : (
+        // Plansza Bingo (komponent z folderu components)
+        <Board nick={nick} kategoria={kategoria} socket={socket} onWyjscie={() => setZalogowany(false)} />
+      )}
+    </div>
+  );
 }
-
-export default App
