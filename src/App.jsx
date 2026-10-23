@@ -10,7 +10,8 @@ export default function App() {
   const [nick, setNick] = useState("");
   const [kodPokoju, setKodPokoju] = useState("");
   const [kategoria, setKategoria] = useState("impreza");
-  const [poczatkowiGracze, setPoczatkowiGracze] = useState([]);
+  const [wlasneHaslaTekst, setWlasneHaslaTekst] = useState("");
+  const [daneGry, setDaneGry] = useState({ kategoria: "impreza", wlasneHasla: [], gracze: [] });
   const [blad, setBlad] = useState("");
   const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
 
@@ -18,17 +19,13 @@ export default function App() {
     socket.on('connect', () => setStatusServera("Połączono z serwerem 🟢"));
     socket.on('disconnect', () => setStatusServera("Rozłączono z serwerem 🔴"));
 
-    // Odbieramy potwierdzenie rozpoczęcia gry z serwera
-    socket.on('start-gry', ({ kategoria, gracze }) => {
-      setKategoria(kategoria);
-      setPoczatkowiGracze(gracze || []);
+    socket.on('start-gry', (dane) => {
+      setDaneGry(dane);
       setZalogowany(true);
       setBlad("");
     });
 
-    socket.on('blad', (komunikat) => {
-      setBlad(komunikat);
-    });
+    socket.on('blad', (komunikat) => setBlad(komunikat));
 
     return () => {
       socket.off('connect');
@@ -49,7 +46,13 @@ export default function App() {
       setBlad("Wpisz nick oraz kod pokoju!");
       return;
     }
-    socket.emit('utworz-pokoj', { kodPokoju, nick, kategoria });
+    // Przekształcamy tekst z hasłami po przecinku na tablicę (jeśli host coś wpisał)
+    const wlasneHasla = wlasneHaslaTekst
+      .split('\n')
+      .map(h => h.trim())
+      .filter(h => h.length > 0);
+
+    socket.emit('utworz-pokoj', { kodPokoju, nick, kategoria, wlasneHasla });
   };
 
   const handleDolaczPokoj = (e) => {
@@ -77,7 +80,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Wybór trybu: Host czy Gracz */}
           {tryb === "wybor" && (
             <div className="space-y-4">
               <button 
@@ -87,7 +89,7 @@ export default function App() {
                 🏠 Stwórz nowy pokój (Host)
               </button>
               <button 
-                onClick={() => setTryb("gracz")}
+                onClick={() => { setTryb("gracz"); setBlad(""); }}
                 className="w-full py-3 bg-slate-700 hover:bg-slate-600 font-semibold rounded-xl transition shadow-lg cursor-pointer"
               >
                 🎮 Dołącz do pokoju (Gracz)
@@ -95,7 +97,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Formularz dla Hosta */}
           {tryb === "host" && (
             <form onSubmit={handleUtworzPokoj} className="space-y-4">
               <div>
@@ -118,11 +119,11 @@ export default function App() {
                     onChange={(e) => setKodPokoju(e.target.value.toUpperCase())}
                     className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white uppercase font-mono"
                   />
-                  <button type="button" onClick={generujKod} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs">Losuj</button>
+                  <button type="button" onClick={generujKod} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs cursor-pointer">Losuj</button>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Kategoria Gry (Wybiera Host)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Kategoria Domyślna</label>
                 <select 
                   value={kategoria} 
                   onChange={(e) => setKategoria(e.target.value)}
@@ -133,14 +134,23 @@ export default function App() {
                   <option value="sesja">🤯 Sesja egzaminacyjna</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Własne hasła (opcjonalnie, każde w nowej linii)</label>
+                <textarea 
+                  value={wlasneHaslaTekst}
+                  onChange={(e) => setWlasneHaslaTekst(e.target.value)}
+                  placeholder="Wpisz hasła, każde w nowej linii (jeśli puste, użyjemy domyślnych)"
+                  rows={3}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+                />
+              </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => {setTryb("wybor"); setBlad(""); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Wstecz</button>
-                <button type="submit" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg shadow-lg">Start gry</button>
+                <button type="button" onClick={() => { setTryb("wybor"); setBlad(""); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm cursor-pointer">Wstecz</button>
+                <button type="submit" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg shadow-lg cursor-pointer">Start gry</button>
               </div>
             </form>
           )}
 
-          {/* Formularz dla Gracza (brak wyboru kategorii!) */}
           {tryb === "gracz" && (
             <form onSubmit={handleDolaczPokoj} className="space-y-4">
               <div>
@@ -166,15 +176,23 @@ export default function App() {
                 />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => {setTryb("wybor"); setBlad(""); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Wstecz</button>
-                <button type="submit" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg shadow-lg">Dołącz do pokoju</button>
+                <button type="button" onClick={() => { setTryb("wybor"); setBlad(""); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm cursor-pointer">Wstecz</button>
+                <button type="submit" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg shadow-lg cursor-pointer">Dołącz do pokoju</button>
               </div>
             </form>
           )}
 
         </div>
       ) : (
-        <Board nick={nick} kategoria={kategoria} kodPokoju={kodPokoju} socket={socket} poczatkowiGracze={poczatkowiGracze} onWyjscie={() => setZalogowany(false)} />
+        <Board 
+          nick={nick} 
+          kategoria={daneGry.kategoria} 
+          wlasneHasla={daneGry.wlasneHasla} 
+          kodPokoju={kodPokoju} 
+          socket={socket} 
+          poczatkowiGracze={daneGry.gracze} 
+          onWyjscie={() => setZalogowany(false)} 
+        />
       )}
     </div>
   );

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Bazy haseł dla kategorii
 const bazyHasel = {
   impreza: [
     "Ktoś szuka ładowarki", "Rozmowa o byłych", "Ktoś rozlewa drinka",
@@ -21,26 +20,28 @@ const bazyHasel = {
   ]
 };
 
-export default function Board({ nick, kategoria, kodPokoju, socket, poczatkowiGracze, onWyjscie }) {
+export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, onWyjscie }) {
   const [hasla, setHasla] = useState([]);
   const [zaznaczone, Zaznaczone] = useState(Array(9).fill(false));
   const [komunikatWygranej, setKomunikatWygranej] = useState("");
+  const [pokazModal, setPokazModal] = useState(false);
   const [powiadomienia, setPowiadomienia] = useState([]);
   const [listaGraczy, setListaGraczy] = useState(poczatkowiGracze || []);
+  const [skopiowano, setSkopiowano] = useState(false);
 
   useEffect(() => {
-    // Losowanie haseł dla wybranej kategorii
-    const wybraneHasla = bazyHasel[kategoria] || bazyHasel.impreza;
-    const wylosowane = [...wybraneHasla].sort(() => 0.5 - Math.random()).slice(0, 9);
+    // Jeśli host podał własne hasła i jest ich przynajmniej 9, używamy ich. W przeciwnym razie bazy domyślnej.
+    let pula = (wlasneHasla && wlasneHasla.length >= 9) ? wlasneHasla : (bazyHasel[kategoria] || bazyHasel.impreza);
+    const wylosowane = [...pula].sort(() => 0.5 - Math.random()).slice(0, 9);
     setHasla(wylosowane);
 
-    // Nasłuchiwanie Socket.io
     socket.on('ogloszenie-wygranej', (tresc) => {
       setKomunikatWygranej(tresc);
+      setPokazModal(true);
     });
 
     socket.on('powiadomienie', (msg) => {
-      setPowiadomienia(prev => [msg, ...prev.slice(0, 4)]); // Trzymaj ostatnie 5 powiadomień
+      setPowiadomienia(prev => [msg, ...prev.slice(0, 4)]);
     });
 
     socket.on('aktualizacja-graczy', (gracze) => {
@@ -52,19 +53,26 @@ export default function Board({ nick, kategoria, kodPokoju, socket, poczatkowiGr
       socket.off('powiadomienie');
       socket.off('aktualizacja-graczy');
     };
-  }, [kategoria, socket]);
+  }, [kategoria, wlasneHasla, socket]);
+
+  const kopiujKod = () => {
+    navigator.clipboard.writeText(kodPokoju);
+    setSkopiowano(true);
+    setTimeout(() => setSkopiowano(false), 2000);
+  };
 
   const toggleKafelek = (index) => {
+    if (pokazModal) return;
+
     const noweZaznaczone = [...zaznaczone];
     noweZaznaczone[index] = !noweZaznaczone[index];
     Zaznaczone(noweZaznaczone);
 
-    // Sprawdzenie warunków Bingo (linie pionowe, poziome, ukośne)
     const w = noweZaznaczone;
     const czyWygrana = 
-      (w[0] && w[1] && w[2]) || (w[3] && w[4] && w[5]) || (w[6] && w[7] && w[8]) || // poziome
-      (w[0] && w[3] && w[6]) || (w[1] && w[4] && w[7]) || (w[2] && w[5] && w[8]) || // pionowe
-      (w[0] && w[4] && w[8]) || (w[2] && w[4] && w[6]); // ukośne
+      (w[0] && w[1] && w[2]) || (w[3] && w[4] && w[5]) || (w[6] && w[7] && w[8]) || 
+      (w[0] && w[3] && w[6]) || (w[1] && w[4] && w[7]) || (w[2] && w[5] && w[8]) || 
+      (w[0] && w[4] && w[8]) || (w[2] && w[4] && w[6]); 
 
     if (czyWygrana && !komunikatWygranej) {
       socket.emit('bingo-wygrana');
@@ -72,30 +80,64 @@ export default function Board({ nick, kategoria, kodPokoju, socket, poczatkowiGr
   };
 
   const resetujPlansze = () => {
-    const wybraneHasla = bazyHasel[kategoria] || bazyHasel.impreza;
-    const wylosowane = [...wybraneHasla].sort(() => 0.5 - Math.random()).slice(0, 9);
+    let pula = (wlasneHasla && wlasneHasla.length >= 9) ? wlasneHasla : (bazyHasel[kategoria] || bazyHasel.impreza);
+    const wylosowane = [...pula].sort(() => 0.5 - Math.random()).slice(0, 9);
     setHasla(wylosowane);
     Zaznaczone(Array(9).fill(false));
     setKomunikatWygranej("");
+    setPokazModal(false);
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
       
-      {/* GŁÓWNA PLANSZA BINGO */}
+      {/* MODAL WYGRANEJ */}
+      {pokazModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border-2 border-amber-500/80 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl shadow-amber-500/20">
+            <div className="text-6xl mb-4 animate-bounce">🏆</div>
+            <h2 className="text-3xl font-extrabold text-amber-400 mb-2">Mamy Zwycięzcę!</h2>
+            <p className="text-slate-200 text-lg mb-6 font-medium">
+              {komunikatWygranej}
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={resetujPlansze}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg cursor-pointer"
+              >
+                Zagraj ponownie
+              </button>
+              <button 
+                onClick={onWyjscie}
+                className="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-xl transition cursor-pointer"
+              >
+                Wyjdź
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLANSZA BINGO */}
       <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex-1 w-full">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-indigo-400">Bingo: {nick}</h1>
-          <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">
-            Kategoria: <span className="text-white font-semibold">{kategoria}</span> | Pokój: <span className="font-mono text-amber-400 font-bold">{kodPokoju}</span>
-          </p>
-        </div>
-
-        {komunikatWygranej && (
-          <div className="mb-6 p-4 bg-amber-500/20 border border-amber-500 text-amber-300 rounded-xl text-center font-bold animate-bounce shadow-lg">
-            {komunikatWygranej}
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <p className="text-xs text-slate-400 uppercase tracking-wider">
+              Kategoria: <span className="text-white font-semibold">{kategoria}</span> | Pokój: 
+            </p>
+            <span className="font-mono text-amber-400 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
+              {kodPokoju}
+            </span>
+            <button 
+              onClick={kopiujKod} 
+              className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded transition cursor-pointer"
+              title="Skopiuj kod pokoju"
+            >
+              {skopiowano ? "Skopiowano! ✓" : "Kopiuj"}
+            </button>
           </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
           {hasla.map((haslo, index) => (
@@ -129,7 +171,7 @@ export default function Board({ nick, kategoria, kodPokoju, socket, poczatkowiGr
         </div>
       </div>
 
-      {/* PANEL BOCZNY: LICZNIK I GRACZE ONLINE */}
+      {/* PANEL BOCZNY */}
       <div className="w-full lg:w-80 bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 space-y-6">
         <div>
           <div className="flex justify-between items-center mb-3">
@@ -150,7 +192,6 @@ export default function Board({ nick, kategoria, kodPokoju, socket, poczatkowiGr
           </ul>
         </div>
 
-        {/* LOG POWIADOMIENIA */}
         <div>
           <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Aktywność</h2>
           <div className="space-y-1.5 text-xs text-slate-400 max-h-36 overflow-y-auto">
