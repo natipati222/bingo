@@ -10,6 +10,7 @@ export default function App() {
   const [nick, setNick] = useState("");
   const [kodPokoju, setKodPokoju] = useState("");
   const [kategoria, setKategoria] = useState("impreza");
+  const [poczatkowiGracze, setPoczatkowiGracze] = useState([]);
   const [blad, setBlad] = useState("");
   const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
 
@@ -18,8 +19,9 @@ export default function App() {
     socket.on('disconnect', () => setStatusServera("Rozłączono z serwerem 🔴"));
 
     // Odbieramy potwierdzenie rozpoczęcia gry z serwera
-    socket.on('start-gry', ({ kategoria }) => {
+    socket.on('start-gry', ({ kategoria, gracze }) => {
       setKategoria(kategoria);
+      setPoczatkowiGracze(gracze || []);
       setZalogowany(true);
       setBlad("");
     });
@@ -172,7 +174,7 @@ export default function App() {
 
         </div>
       ) : (
-        <Board nick={nick} kategoria={kategoria} kodPokoju={kodPokoju} socket={socket} onWyjscie={() => setZalogowany(false)} />
+        <Board nick={nick} kategoria={kategoria} kodPokoju={kodPokoju} socket={socket} poczatkowiGracze={poczatkowiGracze} onWyjscie={() => setZalogowany(false)} />
       )}
     </div>
   );
