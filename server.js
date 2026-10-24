@@ -16,7 +16,6 @@ const pokoje = {};
 io.on('connection', (socket) => {
   console.log('🟢 Użytkownik połączył się:', socket.id);
 
-  // Host tworzy pokój z własnymi lub domyślnymi hasłami
   socket.on('utworz-pokoj', ({ kodPokoju, nick, kategoria, wlasneHasla }) => {
     socket.join(kodPokoju);
     socket.data.nick = nick;
@@ -27,7 +26,8 @@ io.on('connection', (socket) => {
       kategoria,
       wlasneHasla: wlasneHasla || [],
       host: socket.id,
-      gracze: [{ id: socket.id, nick }]
+      gracze: [{ id: socket.id, nick }],
+      zwyciezcy: [] // Lista osób, które zrobiły Bingo w kolejności
     };
 
     console.log(`🏠 Host "${nick}" utworzył pokój [${kodPokoju}]`);
@@ -35,7 +35,6 @@ io.on('connection', (socket) => {
     io.to(kodPokoju).emit('aktualizacja-graczy', pokoje[kodPokoju].gracze);
   });
 
-  // Gracz dołącza do pokoju
   socket.on('dolacz-do-pokoju', ({ kodPokoju, nick }) => {
     if (!pokoje[kodPokoju]) {
       socket.emit('blad', 'Taki pokój nie istnieje! Sprawdź kod.');
@@ -58,15 +57,36 @@ io.on('connection', (socket) => {
     io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} dołączył do pokoju!`);
   });
 
-  // Wygrana w pokoju
+  // Obsługa zdobycia Bingo z zachowaniem miejsc
   socket.on('bingo-wygrana', () => {
     const { nick, kodPokoju } = socket.data;
-    if (kodPokoju) {
-      io.to(kodPokoju).emit('ogloszenie-wygranej', `🎉 Gracz ${nick} właśnie zdobył BINGO!`);
+    if (kodPokoju && pokoje[kodPokoju]) {
+      const pokoj = pokoje[kodPokoju];
+
+      // Sprawdzamy czy ten gracz nie ma już przypisanego miejsca
+      const czyJuzWygral = pokoj.zwyciezcy.some(z => z.nick === nick);
+      if (!czyJuzWygral) {
+        const miejsce = pokoj.zwyciezcy.length + 1; // 1, 2, lub 3 miejsce
+        if (miejsce <= 3) {
+          pokoj.zwyciezcy.push({ nick, miejsce });
+        }
+
+        let trescOgloszenia = `🎉 Gracz ${nick} zdobył ${miejsce}. miejsce z BINGO!`;
+        console.log(`🎉 Pokój [${kodPokoju}]: ${trescOgloszenia}`);
+
+        // Wysyłamy informację do wszystkich w pokoju (w tym do panelu aktywności)
+        io.to(kodPokoju).emit('ogloszenie-wygranej', { 
+          tresc: trescOgloszenia, 
+          zwyciezcy: pokoj.zwyciezcy,
+          zwyciezcaOstatni: nick,
+          miejsce
+        });
+        
+        io.to(kodPokoju).emit('powiadomienie', `🏆 ${nick} zdobył ${miejsce}. miejsce!`);
+      }
     }
   });
 
-  // Rozłączenie
   socket.on('disconnect', () => {
     const { kodPokoju, nick } = socket.data;
     if (kodPokoju && pokoje[kodPokoju]) {
@@ -85,5 +105,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(3000, () => {
-  console.log('🚀 Serwer Socket.io działa na porcie 3000');
+  console.log('🚀 Serwer Socket.io działa na porcie 3000 (Podium i Miejsca)');
 });

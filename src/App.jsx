@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import Board from './components/Board';
+import CreateRoomModal from './components/CreateRoomModal';
 
 const socket = io('http://localhost:3000');
 
@@ -86,7 +87,7 @@ export default function App() {
                 onClick={() => { setTryb("host"); generujKod(); }}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-xl transition shadow-lg cursor-pointer"
               >
-                🏠 Stwórz nowy pokój (Host)
+                🏠 Stwórz pokój (Host)
               </button>
               <button 
                 onClick={() => { setTryb("gracz"); setBlad(""); }}
@@ -98,57 +99,10 @@ export default function App() {
           )}
 
           {tryb === "host" && (
-            <form onSubmit={handleUtworzPokoj} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Twój Nick (Host)</label>
-                <input 
-                  type="text" 
-                  value={nick} 
-                  onChange={(e) => setNick(e.target.value)}
-                  placeholder="np. SzefSzefow"
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white"
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Kod Pokoju</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={kodPokoju} 
-                    onChange={(e) => setKodPokoju(e.target.value.toUpperCase())}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white uppercase font-mono"
-                  />
-                  <button type="button" onClick={generujKod} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs cursor-pointer">Losuj</button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Kategoria Domyślna</label>
-                <select 
-                  value={kategoria} 
-                  onChange={(e) => setKategoria(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                >
-                  <option value="impreza">🎉 Impreza</option>
-                  <option value="studia">📚 Wykład na uczelni</option>
-                  <option value="sesja">🤯 Sesja egzaminacyjna</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Własne hasła (opcjonalnie, każde w nowej linii)</label>
-                <textarea 
-                  value={wlasneHaslaTekst}
-                  onChange={(e) => setWlasneHaslaTekst(e.target.value)}
-                  placeholder="Wpisz hasła, każde w nowej linii (jeśli puste, użyjemy domyślnych)"
-                  rows={3}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => { setTryb("wybor"); setBlad(""); }} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm cursor-pointer">Wstecz</button>
-                <button type="submit" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg shadow-lg cursor-pointer">Start gry</button>
-              </div>
-            </form>
+            <CreateRoomModal 
+              socket={socket} 
+              onWstecz={() => { setTryb("wybor"); setBlad(""); }} 
+            />
           )}
 
           {tryb === "gracz" && (

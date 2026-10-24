@@ -24,19 +24,21 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   const [hasla, setHasla] = useState([]);
   const [zaznaczone, Zaznaczone] = useState(Array(9).fill(false));
   const [komunikatWygranej, setKomunikatWygranej] = useState("");
+  const [zwyciezcy, setZwyciezcy] = useState([]);
   const [pokazModal, setPokazModal] = useState(false);
   const [powiadomienia, setPowiadomienia] = useState([]);
   const [listaGraczy, setListaGraczy] = useState(poczatkowiGracze || []);
   const [skopiowano, setSkopiowano] = useState(false);
+  const [czyZrobilemBingo, setCzyZrobilemBingo] = useState(false);
 
   useEffect(() => {
-    // Jeśli host podał własne hasła i jest ich przynajmniej 9, używamy ich. W przeciwnym razie bazy domyślnej.
     let pula = (wlasneHasla && wlasneHasla.length >= 9) ? wlasneHasla : (bazyHasel[kategoria] || bazyHasel.impreza);
     const wylosowane = [...pula].sort(() => 0.5 - Math.random()).slice(0, 9);
     setHasla(wylosowane);
 
-    socket.on('ogloszenie-wygranej', (tresc) => {
+    socket.on('ogloszenie-wygranej', ({ tresc, zwyciezcy }) => {
       setKomunikatWygranej(tresc);
+      setZwyciezcy(zwyciezcy);
       setPokazModal(true);
     });
 
@@ -62,7 +64,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   };
 
   const toggleKafelek = (index) => {
-    if (pokazModal) return;
+    if (czyZrobilemBingo) return; // Jeśli ten gracz ma już swoje Bingo, nie klika dalej
 
     const noweZaznaczone = [...zaznaczone];
     noweZaznaczone[index] = !noweZaznaczone[index];
@@ -74,7 +76,8 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       (w[0] && w[3] && w[6]) || (w[1] && w[4] && w[7]) || (w[2] && w[5] && w[8]) || 
       (w[0] && w[4] && w[8]) || (w[2] && w[4] && w[6]); 
 
-    if (czyWygrana && !komunikatWygranej) {
+    if (czyWygrana && !czyZrobilemBingo) {
+      setCzyZrobilemBingo(true);
       socket.emit('bingo-wygrana');
     }
   };
@@ -86,30 +89,45 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
     Zaznaczone(Array(9).fill(false));
     setKomunikatWygranej("");
     setPokazModal(false);
+    setCzyZrobilemBingo(false);
   };
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
       
-      {/* MODAL WYGRANEJ */}
+      {/* MODAL PODIUM / WYNIKÓW */}
       {pokazModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 border-2 border-amber-500/80 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl shadow-amber-500/20">
-            <div className="text-6xl mb-4 animate-bounce">🏆</div>
-            <h2 className="text-3xl font-extrabold text-amber-400 mb-2">Mamy Zwycięzcę!</h2>
-            <p className="text-slate-200 text-lg mb-6 font-medium">
-              {komunikatWygranej}
-            </p>
+            <div className="text-5xl mb-3 animate-bounce">🏆</div>
+            <h2 className="text-2xl font-extrabold text-amber-400 mb-1">Podsumowanie Rundy</h2>
+            <p className="text-slate-300 text-xs mb-6">{komunikatWygranej}</p>
+
+            {/* PODIUM */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 mb-6 space-y-2 text-left">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-3">Podium Zwycięzców</h3>
+              {zwyciezcy.map((z, idx) => (
+                <div key={idx} className="flex items-center justify-between px-3 py-2 bg-slate-800 rounded-lg border border-slate-700">
+                  <span className="font-bold text-sm flex items-center gap-2">
+                    {z.miejsce === 1 && "🥇 1. Miejsce"}
+                    {z.miejsce === 2 && "🥈 2. Miejsce"}
+                    {z.miejsce === 3 && "🥉 3. Miejsce"}
+                  </span>
+                  <span className="font-semibold text-indigo-300">{z.nick}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="flex gap-3">
               <button 
                 onClick={resetujPlansze}
-                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg cursor-pointer"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg cursor-pointer text-sm"
               >
-                Zagraj ponownie
+                Następna runda
               </button>
               <button 
                 onClick={onWyjscie}
-                className="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-xl transition cursor-pointer"
+                className="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-xl transition cursor-pointer text-sm"
               >
                 Wyjdź
               </button>
@@ -132,7 +150,6 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
             <button 
               onClick={kopiujKod} 
               className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded transition cursor-pointer"
-              title="Skopiuj kod pokoju"
             >
               {skopiowano ? "Skopiowano! ✓" : "Kopiuj"}
             </button>
@@ -199,7 +216,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
               <p className="italic text-slate-500">Brak nowych zdarzeń...</p>
             ) : (
               powiadomienia.map((msg, idx) => (
-                <div key={idx} className="p-2 bg-slate-900/60 rounded border border-slate-700/40">
+                <div key={idx} className="p-2 bg-slate-900/60 rounded border border-slate-700/40 text-amber-300 font-medium">
                   {msg}
                 </div>
               ))
