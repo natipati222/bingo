@@ -101,6 +101,9 @@ export default function App() {
           {tryb === "host" && (
             <CreateRoomModal 
               socket={socket} 
+              nick={nick}
+              kodPokoju={kodPokoju}
+              onNickChange={setNick}
               onWstecz={() => { setTryb("wybor"); setBlad(""); }} 
             />
           )}

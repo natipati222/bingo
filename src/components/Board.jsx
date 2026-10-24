@@ -172,13 +172,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
           ))}
         </div>
 
-        <div className="flex gap-4">
-          <button 
-            onClick={resetujPlansze}
-            className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 font-semibold rounded-xl transition cursor-pointer"
-          >
-            Nowa plansza
-          </button>
+        <div className="flex justify-end">
           <button 
             onClick={onWyjscie}
             className="px-6 py-3 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 font-semibold rounded-xl transition cursor-pointer"

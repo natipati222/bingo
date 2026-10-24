@@ -20,19 +20,12 @@ const bazyHasel = {
   ]
 };
 
-export default function CreateRoomModal({ socket, onWstecz }) {
-  const [nick, setNick] = useState("");
-  const [kodPokoju, setKodPokoju] = useState("");
+export default function CreateRoomModal({ socket, nick, kodPokoju, onNickChange, onWstecz }) {
   const [rodzajGry, setRodzajGry] = useState("kategoria"); // "kategoria" lub "wlasne"
   const [kategoria, setKategoria] = useState("impreza");
   const [tytulBingo, setTytulBingo] = useState("Moje Super Bingo");
   const [polaZadan, setPolaZadan] = useState(Array(9).fill(""));
   const [blad, setBlad] = useState("");
-
-  const generujKod = () => {
-    const losowy = Math.random().toString(36).substring(2, 6).toUpperCase();
-    setKodPokoju(losowy);
-  };
 
   const handleZmianaPola = (index, tekst) => {
     const nowePola = [...polaZadan];
@@ -42,8 +35,8 @@ export default function CreateRoomModal({ socket, onWstecz }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!nick.trim() || !kodPokoju.trim()) {
-      setBlad("Wpisz swój nick oraz kod pokoju!");
+    if (!nick.trim()) {
+      setBlad("Wpisz swój nick!");
       return;
     }
 
@@ -67,7 +60,7 @@ export default function CreateRoomModal({ socket, onWstecz }) {
       kodPokoju, 
       nick, 
       kategoria: finalnaKategoria, 
-      zadania: finalneZadania 
+      wlasneHasla: finalneZadania
     });
   };
 
@@ -85,29 +78,15 @@ export default function CreateRoomModal({ socket, onWstecz }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Twój Nick (Host)</label>
-            <input 
-              type="text" 
-              value={nick} 
-              onChange={(e) => setNick(e.target.value)}
-              placeholder="np. Szef"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Kod Pokoju</label>
-            <div className="flex gap-1">
-              <input 
-                type="text" 
-                value={kodPokoju} 
-                onChange={(e) => setKodPokoju(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white uppercase font-mono text-sm"
-              />
-              <button type="button" onClick={generujKod} className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs cursor-pointer">Losuj</button>
-            </div>
-          </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Twój Nick (Host)</label>
+          <input 
+            type="text" 
+            value={nick} 
+            onChange={(e) => onNickChange(e.target.value)}
+            placeholder="np. Szef"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+          />
         </div>
 
         <div>
