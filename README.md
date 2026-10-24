@@ -1,16 +1,29 @@
-# React + Vite
+# Live Bingo
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+## Uruchomienie lokalne
 
-Currently, two official plugins are available:
+1. Zainstaluj zależności: `npm install`
+2. Uruchom serwer gry: `npm run server`
+3. W drugim terminalu uruchom frontend: `npm run dev`
+4. Otwórz adres pokazany przez Vite, domyślnie `http://localhost:5173`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Wdrożenie na Render
 
-## React Compiler
+Repozytorium zawiera `render.yaml`, który konfiguruje jedną usługę Render:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- buduje frontend komendą `npm ci && npm run build`,
+- uruchamia serwer Socket.IO i Express komendą `npm run server`,
+- serwuje frontend i Socket.IO z tego samego publicznego adresu,
+- zapisuje pokoje w trwałym dysku pod `/var/data`.
 
-## Expanding the Oxlint configuration
+Aby opublikować grę:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+1. Wypchnij repozytorium do GitHub lub GitLab.
+2. W Render wybierz **New + → Blueprint** i połącz repozytorium.
+3. Zatwierdź konfigurację z `render.yaml`.
+4. Po zakończeniu wdrożenia otwórz publiczny adres usługi Render.
+
+Konfiguracja Blueprint używa płatnego planu usługi i trwałego dysku. Są one
+potrzebne, aby serwer działał publicznie przez cały czas i zachowywał stan pokoi
+po restarcie. Bez trwałego dysku pokoje mogą zostać utracone przy ponownym
+uruchomieniu usługi.

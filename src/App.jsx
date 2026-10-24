@@ -3,7 +3,9 @@ import { io } from 'socket.io-client';
 import Board from './components/Board';
 import CreateRoomModal from './components/CreateRoomModal';
 
-const socket = io('http://localhost:3000');
+const socket = io(
+  import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
+);
 const sesjaKey = 'live-bingo-session';
 const playerIdKey = 'live-bingo-player-id';
 

@@ -8,12 +8,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: [
+      process.env.RENDER_EXTERNAL_URL,
+      "http://localhost:5173"
+    ].filter(Boolean),
     methods: ["GET", "POST"]
   }
 });
 
-const plikPokoi = join(process.cwd(), '.bingo-data', 'rooms.json');
+app.use(express.static(join(process.cwd(), 'dist')));
+
+const katalogDanych = process.env.BINGO_DATA_DIR || join(process.cwd(), '.bingo-data');
+const plikPokoi = join(katalogDanych, 'rooms.json');
 mkdirSync(dirname(plikPokoi), { recursive: true });
 const pokoje = existsSync(plikPokoi)
   ? JSON.parse(readFileSync(plikPokoi, 'utf8'))
@@ -210,6 +216,7 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(3000, () => {
-  console.log('🚀 Serwer Socket.io działa na porcie 3000');
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`🚀 Serwer Bingo działa na porcie ${port}`);
 });
