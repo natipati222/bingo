@@ -4,12 +4,38 @@ import Board from './components/Board';
 import CreateRoomModal from './components/CreateRoomModal';
 
 const socket = io('http://localhost:3000');
+const sesjaKey = 'live-bingo-session';
+const playerIdKey = 'live-bingo-player-id';
+
+const odczytajSesje = () => {
+  const zapisana = localStorage.getItem(sesjaKey);
+  if (!zapisana) return null;
+
+  try {
+    const sesja = JSON.parse(zapisana);
+    return sesja?.kodPokoju && sesja?.playerId ? sesja : null;
+  } catch (error) {
+    console.error('Nie udało się odczytać zapisanej sesji Bingo:', error);
+    localStorage.removeItem(sesjaKey);
+    return null;
+  }
+};
+
+const utworzPlayerId = () => {
+  const zapisany = localStorage.getItem(playerIdKey);
+  if (zapisany) return zapisany;
+
+  const id = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
+  localStorage.setItem(playerIdKey, id);
+  return id;
+};
 
 export default function App() {
   const [zalogowany, setZalogowany] = useState(false);
   const [tryb, setTryb] = useState("wybor"); // "wybor", "host", "gracz"
   const [nick, setNick] = useState("");
   const [kodPokoju, setKodPokoju] = useState("");
+  const [playerId] = useState(utworzPlayerId);
   const [kategoria, setKategoria] = useState("impreza");
   const [wlasneHaslaTekst, setWlasneHaslaTekst] = useState("");
   const [daneGry, setDaneGry] = useState({ kategoria: "impreza", wlasneHasla: [], gracze: [] });
@@ -17,22 +43,44 @@ export default function App() {
   const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
 
   useEffect(() => {
-    socket.on('connect', () => setStatusServera("Połączono z serwerem 🟢"));
+    const wznowGre = () => {
+      const sesja = odczytajSesje();
+      if (sesja) {
+        socket.emit('wznow-gre', sesja);
+      }
+    };
+
+    socket.on('connect', () => {
+      setStatusServera("Połączono z serwerem 🟢");
+      wznowGre();
+    });
     socket.on('disconnect', () => setStatusServera("Rozłączono z serwerem 🔴"));
 
     socket.on('start-gry', (dane) => {
       setDaneGry(dane);
+      setNick(dane.nick);
+      setKodPokoju(dane.kodPokoju);
       setZalogowany(true);
       setBlad("");
+      localStorage.setItem(sesjaKey, JSON.stringify({
+        playerId: dane.playerId,
+        kodPokoju: dane.kodPokoju
+      }));
     });
 
     socket.on('blad', (komunikat) => setBlad(komunikat));
+    socket.on('wznowienie-nieudane', () => {
+      localStorage.removeItem(sesjaKey);
+    });
+
+    if (socket.connected) wznowGre();
 
     return () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('start-gry');
       socket.off('blad');
+      socket.off('wznowienie-nieudane');
     };
   }, []);
 
@@ -53,7 +101,7 @@ export default function App() {
       .map(h => h.trim())
       .filter(h => h.length > 0);
 
-    socket.emit('utworz-pokoj', { kodPokoju, nick, kategoria, wlasneHasla });
+    socket.emit('utworz-pokoj', { kodPokoju, nick, kategoria, wlasneHasla, playerId });
   };
 
   const handleDolaczPokoj = (e) => {
@@ -62,7 +110,7 @@ export default function App() {
       setBlad("Wpisz nick oraz kod pokoju!");
       return;
     }
-    socket.emit('dolacz-do-pokoju', { kodPokoju, nick });
+    socket.emit('dolacz-do-pokoju', { kodPokoju, nick, playerId });
   };
 
   return (
@@ -148,6 +196,9 @@ export default function App() {
           kodPokoju={kodPokoju} 
           socket={socket} 
           poczatkowiGracze={daneGry.gracze} 
+          postep={daneGry.postep}
+          zwyciezcy={daneGry.zwyciezcy}
+          ostatnieOgloszenie={daneGry.ostatnieOgloszenie}
           onWyjscie={() => setZalogowany(false)} 
         />
       )}

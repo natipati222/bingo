@@ -1,5 +1,7 @@
 import express from 'express';
 import http from 'node:http';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
 
 const app = express();
@@ -11,99 +13,203 @@ const io = new Server(server, {
   }
 });
 
-const pokoje = {};
+const plikPokoi = join(process.cwd(), '.bingo-data', 'rooms.json');
+mkdirSync(dirname(plikPokoi), { recursive: true });
+const pokoje = existsSync(plikPokoi)
+  ? JSON.parse(readFileSync(plikPokoi, 'utf8'))
+  : {};
+
+for (const pokoj of Object.values(pokoje)) {
+  for (const gracz of pokoj.gracze) {
+    gracz.socketId = null;
+  }
+}
+
+const zapiszPokoje = () => {
+  writeFileSync(plikPokoi, JSON.stringify(pokoje, null, 2));
+};
+
+const aktywniGracze = (pokoj) => pokoj.gracze
+  .filter(gracz => gracz.socketId)
+  .map(({ id, nick }) => ({ id, nick }));
+
+const daneStartowe = (kodPokoju, pokoj, gracz) => ({
+  kodPokoju,
+  nick: gracz.nick,
+  playerId: gracz.id,
+  kategoria: pokoj.kategoria,
+  wlasneHasla: pokoj.wlasneHasla,
+  gracze: aktywniGracze(pokoj),
+  isHost: pokoj.host === gracz.id,
+  postep: {
+    hasla: gracz.hasla,
+    zaznaczone: gracz.zaznaczone,
+    czyZrobilemBingo: gracz.czyZrobilemBingo
+  },
+  zwyciezcy: pokoj.zwyciezcy,
+  ostatnieOgloszenie: pokoj.ostatnieOgloszenie || ""
+});
+
+const dolaczGracza = (socket, kodPokoju, pokoj, gracz) => {
+  const poprzedniSocket = gracz.socketId && io.sockets.sockets.get(gracz.socketId);
+  if (poprzedniSocket && poprzedniSocket.id !== socket.id) {
+    poprzedniSocket.disconnect(true);
+  }
+
+  gracz.socketId = socket.id;
+  socket.join(kodPokoju);
+  socket.data.nick = gracz.nick;
+  socket.data.kodPokoju = kodPokoju;
+  socket.data.playerId = gracz.id;
+  zapiszPokoje();
+  socket.emit('start-gry', daneStartowe(kodPokoju, pokoj, gracz));
+  io.to(kodPokoju).emit('aktualizacja-graczy', aktywniGracze(pokoj));
+};
 
 io.on('connection', (socket) => {
   console.log('🟢 Użytkownik połączył się:', socket.id);
 
-  socket.on('utworz-pokoj', ({ kodPokoju, nick, kategoria, wlasneHasla }) => {
-    socket.join(kodPokoju);
-    socket.data.nick = nick;
-    socket.data.kodPokoju = kodPokoju;
-    socket.data.isHost = true;
+  socket.on('utworz-pokoj', ({ kodPokoju, nick, kategoria, wlasneHasla, playerId }) => {
+    if (pokoje[kodPokoju]) {
+      socket.emit('blad', 'Ten kod pokoju jest już zajęty. Wylosuj nowy.');
+      return;
+    }
 
-    pokoje[kodPokoju] = {
+    const idGracza = playerId || socket.id;
+    const pulaHasel = Array.isArray(wlasneHasla) ? wlasneHasla : [];
+    const pokoj = {
       kategoria,
-      wlasneHasla: wlasneHasla || [],
-      host: socket.id,
-      gracze: [{ id: socket.id, nick }],
-      zwyciezcy: [] // Lista osób, które zrobiły Bingo w kolejności
+      wlasneHasla: pulaHasel,
+      host: idGracza,
+      gracze: [{
+        id: idGracza,
+        nick,
+        socketId: null,
+        hasla: [...pulaHasel].sort(() => Math.random() - 0.5).slice(0, 9),
+        zaznaczone: Array(9).fill(false),
+        czyZrobilemBingo: false
+      }],
+      zwyciezcy: [],
+      ostatnieOgloszenie: ""
     };
 
+    pokoje[kodPokoju] = pokoj;
+    const gracz = pokoj.gracze[0];
     console.log(`🏠 Host "${nick}" utworzył pokój [${kodPokoju}]`);
-    socket.emit('start-gry', { kategoria, wlasneHasla: pokoje[kodPokoju].wlasneHasla, gracze: pokoje[kodPokoju].gracze, isHost: true });
-    io.to(kodPokoju).emit('aktualizacja-graczy', pokoje[kodPokoju].gracze);
+    dolaczGracza(socket, kodPokoju, pokoj, gracz);
   });
 
-  socket.on('dolacz-do-pokoju', ({ kodPokoju, nick }) => {
-    if (!pokoje[kodPokoju]) {
+  socket.on('dolacz-do-pokoju', ({ kodPokoju, nick, playerId }) => {
+    const pokoj = pokoje[kodPokoju];
+    if (!pokoj) {
       socket.emit('blad', 'Taki pokój nie istnieje! Sprawdź kod.');
       return;
     }
 
-    socket.join(kodPokoju);
-    socket.data.nick = nick;
-    socket.data.kodPokoju = kodPokoju;
-    socket.data.isHost = false;
+    const idGracza = playerId || socket.id;
+    let gracz = pokoj.gracze.find(osoba => osoba.id === idGracza);
+    if (!gracz) {
+      gracz = {
+        id: idGracza,
+        nick,
+        socketId: null,
+        hasla: [...pokoj.wlasneHasla].sort(() => Math.random() - 0.5).slice(0, 9),
+        zaznaczone: Array(9).fill(false),
+        czyZrobilemBingo: false
+      };
+      pokoj.gracze.push(gracz);
+    } else {
+      gracz.nick = nick;
+    }
 
-    pokoje[kodPokoju].gracze.push({ id: socket.id, nick });
-
-    const pokoj = pokoje[kodPokoju];
     console.log(`👤 Gracz "${nick}" dołączył do pokoju [${kodPokoju}]`);
-
-    socket.emit('start-gry', { kategoria: pokoj.kategoria, wlasneHasla: pokoj.wlasneHasla, gracze: pokoj.gracze, isHost: false });
-    
-    io.to(kodPokoju).emit('aktualizacja-graczy', pokoj.gracze);
+    dolaczGracza(socket, kodPokoju, pokoj, gracz);
     io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} dołączył do pokoju!`);
   });
 
-  // Obsługa zdobycia Bingo z zachowaniem miejsc
+  socket.on('wznow-gre', ({ kodPokoju, playerId }) => {
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (!gracz) {
+      socket.emit('wznowienie-nieudane');
+      return;
+    }
+
+    dolaczGracza(socket, kodPokoju, pokoj, gracz);
+  });
+
+  socket.on('aktualizacja-postepu', ({ hasla, zaznaczone, czyZrobilemBingo }) => {
+    const { kodPokoju, playerId } = socket.data;
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (!gracz || !Array.isArray(hasla) || hasla.length !== 9 || !Array.isArray(zaznaczone) || zaznaczone.length !== 9) {
+      return;
+    }
+
+    gracz.hasla = hasla;
+    gracz.zaznaczone = zaznaczone.map(Boolean);
+    gracz.czyZrobilemBingo = Boolean(czyZrobilemBingo);
+    zapiszPokoje();
+  });
+
+  socket.on('opusc-gre', () => {
+    const { kodPokoju, playerId } = socket.data;
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (gracz?.socketId === socket.id) {
+      gracz.socketId = null;
+      socket.leave(kodPokoju);
+      socket.data.kodPokoju = null;
+      zapiszPokoje();
+      io.to(kodPokoju).emit('aktualizacja-graczy', aktywniGracze(pokoj));
+    }
+  });
+
   socket.on('bingo-wygrana', () => {
-    const { nick, kodPokoju } = socket.data;
-    if (kodPokoju && pokoje[kodPokoju]) {
-      const pokoj = pokoje[kodPokoju];
+    const { nick, kodPokoju, playerId } = socket.data;
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (!pokoj || !gracz) return;
 
-      // Sprawdzamy czy ten gracz nie ma już przypisanego miejsca
-      const czyJuzWygral = pokoj.zwyciezcy.some(z => z.nick === nick);
-      if (!czyJuzWygral) {
-        const miejsce = pokoj.zwyciezcy.length + 1; // 1, 2, lub 3 miejsce
-        if (miejsce <= 3) {
-          pokoj.zwyciezcy.push({ nick, miejsce });
-        }
-
-        let trescOgloszenia = `🎉 Gracz ${nick} zdobył ${miejsce}. miejsce z BINGO!`;
-        console.log(`🎉 Pokój [${kodPokoju}]: ${trescOgloszenia}`);
-
-        // Wysyłamy informację do wszystkich w pokoju (w tym do panelu aktywności)
-        io.to(kodPokoju).emit('ogloszenie-wygranej', { 
-          tresc: trescOgloszenia, 
-          zwyciezcy: pokoj.zwyciezcy,
-          zwyciezcaOstatni: nick,
-          miejsce
-        });
-        
-        io.to(kodPokoju).emit('powiadomienie', `🏆 ${nick} zdobył ${miejsce}. miejsce!`);
+    gracz.czyZrobilemBingo = true;
+    const czyJuzWygral = pokoj.zwyciezcy.some(z => z.playerId === playerId);
+    if (!czyJuzWygral) {
+      const miejsce = pokoj.zwyciezcy.length + 1;
+      if (miejsce <= 3) {
+        pokoj.zwyciezcy.push({ playerId, nick, miejsce });
       }
+
+      const trescOgloszenia = `🎉 Gracz ${nick} zdobył ${miejsce}. miejsce z BINGO!`;
+      pokoj.ostatnieOgloszenie = trescOgloszenia;
+      console.log(`🎉 Pokój [${kodPokoju}]: ${trescOgloszenia}`);
+      zapiszPokoje();
+
+      io.to(kodPokoju).emit('ogloszenie-wygranej', {
+        tresc: trescOgloszenia,
+        zwyciezcy: pokoj.zwyciezcy,
+        zwyciezcaOstatni: nick,
+        miejsce
+      });
+      io.to(kodPokoju).emit('powiadomienie', `🏆 ${nick} zdobył ${miejsce}. miejsce!`);
+    } else {
+      zapiszPokoje();
     }
   });
 
   socket.on('disconnect', () => {
-    const { kodPokoju, nick } = socket.data;
-    if (kodPokoju && pokoje[kodPokoju]) {
-      pokoje[kodPokoju].gracze = pokoje[kodPokoju].gracze.filter(g => g.id !== socket.id);
-      
-      if (pokoje[kodPokoju].gracze.length === 0) {
-        delete pokoje[kodPokoju];
-        console.log(`🗑️ Pokój [${kodPokoju}] zamknięty.`);
-      } else {
-        io.to(kodPokoju).emit('aktualizacja-graczy', pokoje[kodPokoju].gracze);
-        io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} opuścił pokój.`);
-      }
+    const { kodPokoju, nick, playerId } = socket.data;
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (gracz?.socketId === socket.id) {
+      gracz.socketId = null;
+      zapiszPokoje();
+      io.to(kodPokoju).emit('aktualizacja-graczy', aktywniGracze(pokoj));
+      io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} opuścił pokój.`);
     }
     console.log('🔴 Użytkownik rozłączył się:', socket.id);
   });
 });
 
 server.listen(3000, () => {
-  console.log('🚀 Serwer Socket.io działa na porcie 3000 (Podium i Miejsca)');
+  console.log('🚀 Serwer Socket.io działa na porcie 3000');
 });

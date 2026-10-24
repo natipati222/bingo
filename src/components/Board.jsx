@@ -20,22 +20,18 @@ const bazyHasel = {
   ]
 };
 
-export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, onWyjscie }) {
-  const [hasla, setHasla] = useState([]);
-  const [zaznaczone, Zaznaczone] = useState(Array(9).fill(false));
-  const [komunikatWygranej, setKomunikatWygranej] = useState("");
-  const [zwyciezcy, setZwyciezcy] = useState([]);
-  const [pokazModal, setPokazModal] = useState(false);
+export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, onWyjscie }) {
+  const [hasla, setHasla] = useState(() => postep?.hasla || []);
+  const [zaznaczone, Zaznaczone] = useState(() => postep?.zaznaczone || Array(9).fill(false));
+  const [komunikatWygranej, setKomunikatWygranej] = useState(ostatnieOgloszenie || "");
+  const [zwyciezcy, setZwyciezcy] = useState(poczatkowiZwyciezcy || []);
+  const [pokazModal, setPokazModal] = useState(Boolean(ostatnieOgloszenie));
   const [powiadomienia, setPowiadomienia] = useState([]);
   const [listaGraczy, setListaGraczy] = useState(poczatkowiGracze || []);
   const [skopiowano, setSkopiowano] = useState(false);
-  const [czyZrobilemBingo, setCzyZrobilemBingo] = useState(false);
+  const [czyZrobilemBingo, setCzyZrobilemBingo] = useState(Boolean(postep?.czyZrobilemBingo));
 
   useEffect(() => {
-    let pula = (wlasneHasla && wlasneHasla.length >= 9) ? wlasneHasla : (bazyHasel[kategoria] || bazyHasel.impreza);
-    const wylosowane = [...pula].sort(() => 0.5 - Math.random()).slice(0, 9);
-    setHasla(wylosowane);
-
     socket.on('ogloszenie-wygranej', ({ tresc, zwyciezcy }) => {
       setKomunikatWygranej(tresc);
       setZwyciezcy(zwyciezcy);
@@ -76,6 +72,13 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       (w[0] && w[3] && w[6]) || (w[1] && w[4] && w[7]) || (w[2] && w[5] && w[8]) || 
       (w[0] && w[4] && w[8]) || (w[2] && w[4] && w[6]); 
 
+    const czyZrobilemBingoTeraz = czyZrobilemBingo || czyWygrana;
+    socket.emit('aktualizacja-postepu', {
+      hasla,
+      zaznaczone: noweZaznaczone,
+      czyZrobilemBingo: czyZrobilemBingoTeraz
+    });
+
     if (czyWygrana && !czyZrobilemBingo) {
       setCzyZrobilemBingo(true);
       socket.emit('bingo-wygrana');
@@ -90,6 +93,16 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
     setKomunikatWygranej("");
     setPokazModal(false);
     setCzyZrobilemBingo(false);
+    socket.emit('aktualizacja-postepu', {
+      hasla: wylosowane,
+      zaznaczone: Array(9).fill(false),
+      czyZrobilemBingo: false
+    });
+  };
+
+  const wyjdzZGry = () => {
+    socket.emit('opusc-gre');
+    onWyjscie();
   };
 
   return (
@@ -126,7 +139,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
                 Następna runda
               </button>
               <button 
-                onClick={onWyjscie}
+                onClick={wyjdzZGry}
                 className="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-xl transition cursor-pointer text-sm"
               >
                 Wyjdź
@@ -172,9 +185,9 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-center">
           <button 
-            onClick={onWyjscie}
+            onClick={wyjdzZGry}
             className="px-6 py-3 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 font-semibold rounded-xl transition cursor-pointer"
           >
             Wyjdź
