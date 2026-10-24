@@ -2,7 +2,7 @@ services:
   - type: web
     name: live-bingo
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm run server
     healthCheckPath: /
@@ -11,7 +11,3 @@ services:
         value: 22.12.0
       - key: BINGO_DATA_DIR
         value: /var/data
-    disk:
-      name: bingo-data
-      mountPath: /var/data
-      sizeGB: 1
