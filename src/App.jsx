@@ -166,7 +166,7 @@ export default function App() {
                   type="text" 
                   value={nick} 
                   onChange={(e) => setNick(e.target.value)}
-                  placeholder="np. Kacper"
+                  placeholder="np. Olek"
                   className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white"
                   autoComplete="off"
                 />

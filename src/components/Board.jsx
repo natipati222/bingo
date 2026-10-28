@@ -1,24 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const bazyHasel = {
-  impreza: [
-    "Ktoś szuka ładowarki", "Rozmowa o byłych", "Ktoś rozlewa drinka",
-    "Ktoś zgubił telefon", "Ktoś zasnął na kanapie", "Dyskusja o polityce",
-    "„Muszę z Tobą porozmawiać”", "Słyszę ten sam hit 3. raz", "Zdrada tajemnicy"
-  ],
-  studia: [
-    "Wykładowca spóźnia się 15 minut", "Pytanie „Czy to będzie na kolokwium?”",
-    "Komuś dzwoni telefon", "Ktoś zasypia na wykładzie", "Walka o przedłużacz",
-    "Prezentacja w PowerPoint z samymi tekstami", "Pytanie bez odpowiedzi z sali",
-    "„Dla mnie to jest oczywiste”", "Przerwa techniczna"
-  ],
-  sesja: [
-    "Płacz nad notatkami", "Kawa pita jako zupa", "„Zaczynam się uczyć od rana” (była 3 w nocy)",
-    "Przeglądanie grupki na FB", "Dźwięk powiadomienia z dziekanatu",
-    "Nagłe sprzątanie całego pokoju przed nauką", "Nadzieja na warunk",
-    "„Dam radę, to tylko 400 stron”", "Zgłaszanie błędu w pytaniach"
-  ]
-};
+import { bazyHasel } from './EntriesDatabase';
 
 export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, onWyjscie }) {
   const [hasla, setHasla] = useState(() => postep?.hasla || []);

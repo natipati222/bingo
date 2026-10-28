@@ -1,24 +1,5 @@
 import React, { useState } from 'react';
-
-const bazyHasel = {
-  impreza: [
-    "Ktoś szuka ładowarki", "Rozmowa o byłych", "Ktoś rozlewa drinka",
-    "Ktoś zgubił telefon", "Ktoś zasnął na kanapie", "Dyskusja o polityce",
-    "„Muszę z Tobą porozmawiać”", "Słyszę ten sam hit 3. raz", "Zdrada tajemnicy"
-  ],
-  studia: [
-    "Wykładowca spóźnia się 15 minut", "Pytanie „Czy to będzie na kolokwium?”",
-    "Komuś dzwoni telefon", "Ktoś zasypia na wykładzie", "Walka o przedłużacz",
-    "Prezentacja w PowerPoint z samymi tekstami", "Pytanie bez odpowiedzi z sali",
-    "„Dla mnie to jest oczywiste”", "Przerwa techniczna"
-  ],
-  sesja: [
-    "Płacz nad notatkami", "Kawa pita jako zupa", "„Zaczynam się uczyć od rana” (była 3 w nocy)",
-    "Przeglądanie grupki na FB", "Dźwięk powiadomienia z dziekanatu",
-    "Nagłe sprzątanie całego pokoju przed nauką", "Nadzieja na warunk",
-    "„Dam radę, to tylko 400 stron”", "Zgłaszanie błędu w pytaniach"
-  ]
-};
+import { bazyHasel } from './EntriesDatabase';
 
 export default function CreateRoomModal({ socket, nick, kodPokoju, onNickChange, onWstecz }) {
   const [rodzajGry, setRodzajGry] = useState("kategoria"); // "kategoria" lub "wlasne"
@@ -84,7 +65,7 @@ export default function CreateRoomModal({ socket, nick, kodPokoju, onNickChange,
             type="text" 
             value={nick} 
             onChange={(e) => onNickChange(e.target.value)}
-            placeholder="np. Szef"
+            placeholder="np. Nati"
             className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
           />
         </div>
@@ -128,6 +109,8 @@ export default function CreateRoomModal({ socket, nick, kodPokoju, onNickChange,
               <option value="impreza">🎉 Impreza</option>
               <option value="studia">📚 Wykład na uczelni</option>
               <option value="sesja">🤯 Sesja egzaminacyjna</option>
+              <option value="swieta">🎄 Święta</option>
+              <option value="praca">👩‍💻 Praca</option>
             </select>
           </div>
         ) : (
