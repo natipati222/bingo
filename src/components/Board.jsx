@@ -35,7 +35,8 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   }, [kategoria, wlasneHasla, socket]);
 
   const kopiujKod = () => {
-    navigator.clipboard.writeText(kodPokoju);
+    const linkZaproszenia = `${window.location.origin}/?room=${kodPokoju}`;
+    navigator.clipboard.writeText(linkZaproszenia);
     setSkopiowano(true);
     setTimeout(() => setSkopiowano(false), 2000);
   };
@@ -82,7 +83,6 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   };
 
   const wyjdzZGry = () => {
-    socket.emit('opusc-gre');
     onWyjscie();
   };
 
@@ -145,7 +145,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
               onClick={kopiujKod} 
               className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded transition cursor-pointer"
             >
-              {skopiowano ? "Skopiowano! ✓" : "Kopiuj"}
+              {skopiowano ? "Skopiowano! ✓" : "Kopiuj Link"}
             </button>
           </div>
         </div>

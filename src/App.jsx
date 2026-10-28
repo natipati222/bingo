@@ -45,6 +45,14 @@ export default function App() {
   const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get('room');
+
+    if (urlRoom) {
+      setKodPokoju(urlRoom.toUpperCase());
+      setTryb("gracz");
+    }
+
     const wznowGre = () => {
       const sesja = odczytajSesje();
       if (sesja) {
@@ -113,6 +121,22 @@ export default function App() {
       return;
     }
     socket.emit('dolacz-do-pokoju', { kodPokoju, nick, playerId });
+  };
+
+  const handleWyjscie = () => {
+    localStorage.removeItem(`bingo_zaznaczone_${kodPokoju}_${nick}`);
+    localStorage.removeItem('bingo_nick');
+    localStorage.removeItem('bingo_pokoj');
+    localStorage.removeItem(sesjaKey);
+
+    socket.emit('opusc-pokoj');
+
+    // Czyści parametr ?room= z paska adresu
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    setZalogowany(false);
+    setTryb("wybor");
+    setKodPokoju("");
   };
 
   return (
@@ -201,7 +225,7 @@ export default function App() {
           postep={daneGry.postep}
           zwyciezcy={daneGry.zwyciezcy}
           ostatnieOgloszenie={daneGry.ostatnieOgloszenie}
-          onWyjscie={() => setZalogowany(false)} 
+          onWyjscie={handleWyjscie}
         />
       )}
     </div>

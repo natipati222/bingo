@@ -202,6 +202,31 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('opusc-pokoj', () => {
+    const { kodPokoju, nick, playerId } = socket.data;
+    const pokoj = pokoje[kodPokoju];
+    const gracz = pokoj?.gracze.find(osoba => osoba.id === playerId);
+    if (!gracz || gracz.socketId !== socket.id) return;
+
+    pokoj.gracze = pokoj.gracze.filter(osoba => osoba.id !== playerId);
+    socket.leave(kodPokoju);
+    socket.data.kodPokoju = null;
+    socket.data.playerId = null;
+
+    if (pokoj.gracze.length === 0) {
+      delete pokoje[kodPokoju];
+      console.log(`🗑️ Pokój [${kodPokoju}] zamknięty (wszyscy wyszli).`);
+    } else {
+      if (pokoj.host === playerId) {
+        pokoj.host = pokoj.gracze.find(osoba => osoba.socketId)?.id || pokoj.gracze[0].id;
+      }
+      io.to(kodPokoju).emit('aktualizacja-graczy', aktywniGracze(pokoj));
+      io.to(kodPokoju).emit('powiadomienie', `Gracz ${nick} opuścił pokój.`);
+    }
+
+    zapiszPokoje();
+  });
+
   socket.on('disconnect', () => {
     const { kodPokoju, nick, playerId } = socket.data;
     const pokoj = pokoje[kodPokoju];
