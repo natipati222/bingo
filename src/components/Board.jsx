@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { bazyHasel } from './EntriesDatabase';
+import { playClickSound, playWinSound } from './utils/soundManager';
+
 
 export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, onWyjscie }) {
   const [hasla, setHasla] = useState(() => postep?.hasla || []);
@@ -17,6 +19,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       setKomunikatWygranej(tresc);
       setZwyciezcy(zwyciezcy);
       setPokazModal(true);
+      playWinSound();
     });
 
     socket.on('powiadomienie', (msg) => {
@@ -44,6 +47,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   const toggleKafelek = (index) => {
     if (czyZrobilemBingo) return; // Jeśli ten gracz ma już swoje Bingo, nie klika dalej
 
+    playClickSound();
     const noweZaznaczone = [...zaznaczone];
     noweZaznaczone[index] = !noweZaznaczone[index];
     Zaznaczone(noweZaznaczone);
@@ -89,7 +93,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
       
-      {/* MODAL PODIUM / WYNIKÓW */}
+      {/* MODAL PODIUM */}
       {pokazModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 border-2 border-amber-500/80 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl shadow-amber-500/20">
