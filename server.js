@@ -202,6 +202,19 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('wiadomosc-czat', (tresc) => {
+    const { kodPokoju, nick } = socket.data;
+    if (kodPokoju) {
+      const czas = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      io.to(kodPokoju).emit('nowa-wiadomosc', {
+        autor: nick,
+        tresc: tresc,
+        czas: czas
+      });
+    }
+  });
+
   socket.on('opusc-pokoj', () => {
     const { kodPokoju, nick, playerId } = socket.data;
     const pokoj = pokoje[kodPokoju];

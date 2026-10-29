@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { bazyHasel } from './EntriesDatabase';
-import { playClickSound, playWinSound } from './utils/soundManager';
+import { playClickSound, playWinSound } from '../utils/SoundManager';
+import PlayerList from './PlayerList';
 
 
 export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, onWyjscie }) {
@@ -181,41 +182,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       </div>
 
       {/* PANEL BOCZNY */}
-      <div className="w-full lg:w-80 bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 space-y-6">
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-bold text-indigo-400">Gracze w pokoju</h2>
-            <span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-bold rounded-full border border-indigo-500/30">
-              🟢 {listaGraczy.length} online
-            </span>
-          </div>
-          
-          <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {listaGraczy.map((g, idx) => (
-              <li key={idx} className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded-lg border border-slate-700/60 text-sm">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="font-medium text-slate-200 truncate">{g.nick}</span>
-                {g.nick === nick && <span className="ml-auto text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Ty</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Aktywność</h2>
-          <div className="space-y-1.5 text-xs text-slate-400 max-h-36 overflow-y-auto">
-            {powiadomienia.length === 0 ? (
-              <p className="italic text-slate-500">Brak nowych zdarzeń...</p>
-            ) : (
-              powiadomienia.map((msg, idx) => (
-                <div key={idx} className="p-2 bg-slate-900/60 rounded border border-slate-700/40 text-amber-300 font-medium">
-                  {msg}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      <PlayerList nick={nick} listaGraczy={listaGraczy} powiadomienia={powiadomienia} socket={socket} />
 
     </div>
   );
