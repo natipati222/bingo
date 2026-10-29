@@ -211,7 +211,11 @@ io.on('connection', (socket) => {
   socket.on('wiadomosc-czat', (tresc) => {
     const { kodPokoju, nick } = socket.data;
     if (kodPokoju && typeof tresc === 'string' && tresc.trim()) {
-      const czas = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const czas = new Date().toLocaleTimeString('pl-PL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Warsaw'
+      });
 
       const wiadomosc = {
         autor: nick,
