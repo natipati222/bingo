@@ -41,6 +41,7 @@ export default function App() {
   const [kategoria, setKategoria] = useState("impreza");
   const [wlasneHaslaTekst, setWlasneHaslaTekst] = useState("");
   const [daneGry, setDaneGry] = useState({ kategoria: "impreza", wlasneHasla: [], gracze: [] });
+  const [historiaCzatu, setHistoriaCzatu] = useState([]);
   const [blad, setBlad] = useState("");
   const [statusServera, setStatusServera] = useState("Łączenie z serwerem...");
 
@@ -68,6 +69,7 @@ export default function App() {
 
     socket.on('start-gry', (dane) => {
       setDaneGry(dane);
+      setHistoriaCzatu(dane.historiaCzatu || []);
       setNick(dane.nick);
       setKodPokoju(dane.kodPokoju);
       setZalogowany(true);
@@ -79,6 +81,9 @@ export default function App() {
     });
 
     socket.on('blad', (komunikat) => setBlad(komunikat));
+    socket.on('nowa-wiadomosc', (wiadomosc) => {
+      setHistoriaCzatu(prev => [...prev, wiadomosc]);
+    });
     socket.on('wznowienie-nieudane', () => {
       localStorage.removeItem(sesjaKey);
     });
@@ -90,6 +95,7 @@ export default function App() {
       socket.off('disconnect');
       socket.off('start-gry');
       socket.off('blad');
+      socket.off('nowa-wiadomosc');
       socket.off('wznowienie-nieudane');
     };
   }, []);
@@ -225,6 +231,7 @@ export default function App() {
           postep={daneGry.postep}
           zwyciezcy={daneGry.zwyciezcy}
           ostatnieOgloszenie={daneGry.ostatnieOgloszenie}
+          historiaCzatu={historiaCzatu}
           onWyjscie={handleWyjscie}
         />
       )}

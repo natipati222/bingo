@@ -26,6 +26,10 @@ const pokoje = existsSync(plikPokoi)
   : {};
 
 for (const pokoj of Object.values(pokoje)) {
+  if (!Array.isArray(pokoj.historiaCzatu)) {
+    pokoj.historiaCzatu = [];
+  }
+
   for (const gracz of pokoj.gracze) {
     gracz.socketId = null;
   }
@@ -53,7 +57,8 @@ const daneStartowe = (kodPokoju, pokoj, gracz) => ({
     czyZrobilemBingo: gracz.czyZrobilemBingo
   },
   zwyciezcy: pokoj.zwyciezcy,
-  ostatnieOgloszenie: pokoj.ostatnieOgloszenie || ""
+  ostatnieOgloszenie: pokoj.ostatnieOgloszenie || "",
+  historiaCzatu: pokoj.historiaCzatu
 });
 
 const dolaczGracza = (socket, kodPokoju, pokoj, gracz) => {
@@ -96,7 +101,8 @@ io.on('connection', (socket) => {
         czyZrobilemBingo: false
       }],
       zwyciezcy: [],
-      ostatnieOgloszenie: ""
+      ostatnieOgloszenie: "",
+      historiaCzatu: []
     };
 
     pokoje[kodPokoju] = pokoj;
@@ -204,14 +210,17 @@ io.on('connection', (socket) => {
 
   socket.on('wiadomosc-czat', (tresc) => {
     const { kodPokoju, nick } = socket.data;
-    if (kodPokoju) {
+    if (kodPokoju && typeof tresc === 'string' && tresc.trim()) {
       const czas = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      io.to(kodPokoju).emit('nowa-wiadomosc', {
+
+      const wiadomosc = {
         autor: nick,
-        tresc: tresc,
+        tresc: tresc.trim(),
         czas: czas
-      });
+      };
+      pokoje[kodPokoju].historiaCzatu.push(wiadomosc);
+      zapiszPokoje();
+      io.to(kodPokoju).emit('nowa-wiadomosc', wiadomosc);
     }
   });
 

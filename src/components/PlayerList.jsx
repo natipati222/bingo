@@ -1,27 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function PlayerList({ nick, listaGraczy, powiadomienia, socket }) {
+export default function PlayerList({ nick, listaGraczy, powiadomienia, historiaCzatu, socket }) {
   const [wiadomosc, setWiadomosc] = useState("");
-  const [czat, setCzat] = useState([]);
   const chatEndRef = useRef(null);
-
-  // Nasłuchiwanie nowych wiadomości z serwera
-  useEffect(() => {
-    if (!socket) return;
-    
-    socket.on('nowa-wiadomosc', (msg) => {
-      setCzat(prev => [...prev, msg]);
-    });
-
-    return () => {
-      socket.off('nowa-wiadomosc');
-    };
-  }, [socket]);
 
   // Automatyczny scroll do najnowszej wiadomości w czacie
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [czat]);
+  }, [historiaCzatu]);
 
   const wyslijWiadomosc = (e) => {
     e.preventDefault();
@@ -78,10 +64,10 @@ export default function PlayerList({ nick, listaGraczy, powiadomienia, socket })
         
         {/* Okno z dymkami */}
         <div className="flex-1 p-3 overflow-y-auto space-y-3 text-sm">
-          {czat.length === 0 ? (
+          {historiaCzatu.length === 0 ? (
             <p className="text-xs text-slate-500 italic text-center mt-4">Napisz coś, aby rozpocząć rozmowę...</p>
           ) : (
-            czat.map((msg, idx) => {
+            historiaCzatu.map((msg, idx) => {
               const toJa = msg.autor === nick;
               return (
                 <div key={idx} className={`flex flex-col ${toJa ? 'items-end' : 'items-start'}`}>

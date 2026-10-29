@@ -4,7 +4,7 @@ import { playClickSound, playWinSound } from '../utils/SoundManager';
 import PlayerList from './PlayerList';
 
 
-export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, onWyjscie }) {
+export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, historiaCzatu, onWyjscie }) {
   const [hasla, setHasla] = useState(() => postep?.hasla || []);
   const [zaznaczone, Zaznaczone] = useState(() => postep?.zaznaczone || Array(9).fill(false));
   const [komunikatWygranej, setKomunikatWygranej] = useState(ostatnieOgloszenie || "");
@@ -182,7 +182,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       </div>
 
       {/* PANEL BOCZNY */}
-      <PlayerList nick={nick} listaGraczy={listaGraczy} powiadomienia={powiadomienia} socket={socket} />
+      <PlayerList nick={nick} listaGraczy={listaGraczy} powiadomienia={powiadomienia} historiaCzatu={historiaCzatu} socket={socket} />
 
     </div>
   );
