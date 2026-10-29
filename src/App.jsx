@@ -146,7 +146,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div className={zalogowany ? "text-white min-h-screen w-full" : "bg-slate-900 text-white min-h-screen flex items-center justify-center p-4"}>
       {!zalogowany ? (
         <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
           <div className="text-center mb-6">

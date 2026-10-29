@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { bazyHasel } from './EntriesDatabase';
 import { playClickSound, playWinSound } from '../utils/SoundManager';
 import PlayerList from './PlayerList';
+import { styleMotywow, dostepneMotywy } from '../utils/ThemeManager';
 
 
 export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket, poczatkowiGracze, postep, zwyciezcy: poczatkowiZwyciezcy, ostatnieOgloszenie, historiaCzatu, onWyjscie }) {
@@ -14,6 +15,9 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   const [listaGraczy, setListaGraczy] = useState(poczatkowiGracze || []);
   const [skopiowano, setSkopiowano] = useState(false);
   const [czyZrobilemBingo, setCzyZrobilemBingo] = useState(Boolean(postep?.czyZrobilemBingo));
+  const [motyw, setMotyw] = useState(() => {
+    return localStorage.getItem('bingo_motyw') || 'indigo';
+  });
 
   useEffect(() => {
     socket.on('ogloszenie-wygranej', ({ tresc, zwyciezcy }) => {
@@ -37,6 +41,11 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       socket.off('aktualizacja-graczy');
     };
   }, [kategoria, wlasneHasla, socket]);
+
+  const zmienMotyw = (nowyMotyw) => {
+    setMotyw(nowyMotyw);
+    localStorage.setItem('bingo_motyw', nowyMotyw);
+  };
 
   const kopiujKod = () => {
     const linkZaproszenia = `${window.location.origin}/?room=${kodPokoju}`;
@@ -91,8 +100,11 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
     onWyjscie();
   };
 
+  const obecnyStyl = styleMotywow[motyw];
+  
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
+    <div className={`min-h-screen w-full bg-slate-900 transition-colors`}>
+      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
       
       {/* MODAL PODIUM */}
       {pokazModal && (
@@ -137,8 +149,23 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
 
       {/* PLANSZA BINGO */}
       <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex-1 w-full">
+        
+        <div className="flex justify-center items-center gap-3 mb-4">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Kolor:</span>
+          {dostepneMotywy.map((m) => (
+            <button 
+              key={m.id}
+              onClick={() => zmienMotyw(m.id)} 
+              title={m.nazwa}
+              className={`w-5 h-5 rounded-full ${styleMotywow[m.id].bgKulki} transition cursor-pointer ${
+                motyw === m.id ? 'ring-2 ring-white scale-125' : 'opacity-50 hover:opacity-100'
+              }`} 
+            />
+          ))}
+        </div>
+    
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-indigo-400">Bingo: {nick}</h1>
+          <h1 className={`text-3xl font-bold ${obecnyStyl.naglowek}`}>Bingo: {nick}</h1>
           <div className="flex items-center justify-center gap-2 mt-1">
             <p className="text-xs text-slate-400 uppercase tracking-wider">
               Kategoria: <span className="text-white font-semibold">{kategoria}</span> | Pokój: 
@@ -148,7 +175,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
             </span>
             <button 
               onClick={kopiujKod} 
-              className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded transition cursor-pointer"
+              className={`px-2 py-0.5 ${obecnyStyl.przyciskGlowny} text-xs font-semibold rounded transition cursor-pointer`}
             >
               {skopiowano ? "Skopiowano! ✓" : "Kopiuj Link"}
             </button>
@@ -162,7 +189,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
               onClick={() => toggleKafelek(index)}
               className={`p-4 h-28 rounded-xl text-xs md:text-sm font-semibold transition duration-200 flex items-center justify-center text-center cursor-pointer select-none ${
                 zaznaczone[index]
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40 scale-[0.98]'
+                  ? `${obecnyStyl.przyciskAktywny} scale-[0.98]`
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
               }`}
             >
@@ -182,8 +209,9 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       </div>
 
       {/* PANEL BOCZNY */}
-      <PlayerList nick={nick} listaGraczy={listaGraczy} powiadomienia={powiadomienia} historiaCzatu={historiaCzatu} socket={socket} />
+      <PlayerList nick={nick} listaGraczy={listaGraczy} powiadomienia={powiadomienia} historiaCzatu={historiaCzatu} socket={socket} motyw={motyw} />
 
+      </div>
     </div>
   );
 }
