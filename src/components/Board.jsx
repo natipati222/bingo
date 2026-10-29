@@ -15,6 +15,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   const [listaGraczy, setListaGraczy] = useState(poczatkowiGracze || []);
   const [skopiowano, setSkopiowano] = useState(false);
   const [czyZrobilemBingo, setCzyZrobilemBingo] = useState(Boolean(postep?.czyZrobilemBingo));
+  const [pokazMenuMotywow, setPokazMenuMotywow] = useState(false);
   const [motyw, setMotyw] = useState(() => {
     return localStorage.getItem('bingo_motyw') || 'indigo';
   });
@@ -45,6 +46,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   const zmienMotyw = (nowyMotyw) => {
     setMotyw(nowyMotyw);
     localStorage.setItem('bingo_motyw', nowyMotyw);
+    setPokazMenuMotywow(false);
   };
 
   const kopiujKod = () => {
@@ -149,19 +151,38 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
 
       {/* PLANSZA BINGO */}
       <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex-1 w-full">
-        
-        <div className="flex justify-center items-center gap-3 mb-4">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Kolor:</span>
-          {dostepneMotywy.map((m) => (
-            <button 
-              key={m.id}
-              onClick={() => zmienMotyw(m.id)} 
-              title={m.nazwa}
-              className={`w-5 h-5 rounded-full ${styleMotywow[m.id].bgKulki} transition cursor-pointer ${
-                motyw === m.id ? 'ring-2 ring-white scale-125' : 'opacity-50 hover:opacity-100'
-              }`} 
-            />
-          ))}
+        <div className="flex justify-end mb-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setPokazMenuMotywow((pokaz) => !pokaz)}
+              aria-expanded={pokazMenuMotywow}
+              aria-haspopup="true"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-semibold transition cursor-pointer"
+            >
+              <span aria-hidden="true">🎨</span>
+              Motyw
+            </button>
+            {pokazMenuMotywow && (
+              <div className="absolute right-0 top-full mt-2 z-20 w-44 p-2 bg-slate-900 rounded-xl border border-slate-700 shadow-xl">
+                {dostepneMotywy.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => zmienMotyw(m.id)}
+                    aria-pressed={motyw === m.id}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition cursor-pointer ${
+                      motyw === m.id ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className={`w-3 h-3 rounded-full ${styleMotywow[m.id].bgKulki}`} />
+                    {m.nazwa}
+                    {motyw === m.id && <span className="ml-auto" aria-hidden="true">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
     
         <div className="text-center mb-6">
