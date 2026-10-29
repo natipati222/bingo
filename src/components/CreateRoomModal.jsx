@@ -46,7 +46,7 @@ export default function CreateRoomModal({ socket, nick, kodPokoju, onNickChange,
   };
 
   return (
-    <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-xl border border-slate-700">
+    <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-xl border border-slate-700">
       <div className="text-center mb-6">
         <span className="text-4xl">🎯</span>
         <h1 className="text-2xl font-bold mt-2 text-indigo-400">Stwórz Pokój </h1>

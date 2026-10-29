@@ -106,7 +106,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
   
   return (
     <div className={`min-h-screen w-full bg-slate-900 transition-colors`}>
-      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center p-4 w-full max-w-5xl mx-auto relative">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start justify-center p-3 sm:p-4 w-full max-w-5xl mx-auto relative">
       
       {/* MODAL PODIUM */}
       {pokazModal && (
@@ -150,7 +150,7 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
       )}
 
       {/* PLANSZA BINGO */}
-      <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex-1 w-full">
+      <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-2xl border border-slate-700 flex-1 w-full">
         <div className="flex justify-end mb-2">
           <div className="relative">
             <button
@@ -186,8 +186,8 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
         </div>
     
         <div className="text-center mb-6">
-          <h1 className={`text-3xl font-bold ${obecnyStyl.naglowek}`}>Bingo: {nick}</h1>
-          <div className="flex items-center justify-center gap-2 mt-1">
+          <h1 className={`text-2xl sm:text-3xl font-bold break-words ${obecnyStyl.naglowek}`}>Bingo: {nick}</h1>
+          <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 mt-1">
             <p className="text-xs text-slate-400 uppercase tracking-wider">
               Kategoria: <span className="text-white font-semibold">{kategoria}</span> | Pokój: 
             </p>
@@ -203,12 +203,12 @@ export default function Board({ nick, kategoria, wlasneHasla, kodPokoju, socket,
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
           {hasla.map((haslo, index) => (
             <button
               key={index}
               onClick={() => toggleKafelek(index)}
-              className={`p-4 h-28 rounded-xl text-xs md:text-sm font-semibold transition duration-200 flex items-center justify-center text-center cursor-pointer select-none ${
+              className={`p-2 sm:p-4 h-20 sm:h-28 rounded-xl text-xs md:text-sm font-semibold transition duration-200 flex items-center justify-center text-center cursor-pointer select-none ${
                 zaznaczone[index]
                   ? `${obecnyStyl.przyciskAktywny} scale-[0.98]`
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700/80 border border-slate-700'

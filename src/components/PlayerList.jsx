@@ -20,7 +20,7 @@ export default function PlayerList({ nick, listaGraczy, powiadomienia, historiaC
   };
 
   return (
-    <div className={`w-full lg:w-80 bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 flex flex-col gap-6 h-full max-h-[850px] transition-colors`}>
+    <div className={`w-full lg:w-80 bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-2xl border border-slate-700 flex flex-col gap-4 sm:gap-6 h-full max-h-[850px] transition-colors`}>
       
       {/* 1. SEKCJA: GRACZE */}
       <div>
